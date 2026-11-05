@@ -1,0 +1,42 @@
+{
+  "user_alice_user_bob": [
+    {
+      "id": "msg_photo_test_1",
+      "sender": "user_alice",
+      "senderName": "Alice",
+      "recipientId": "user_bob",
+      "chatId": "user_alice_user_bob",
+      "text": "Check out this sunset photo!",
+      "time": "12:30 PM",
+      "timestamp": 1792872055899,
+      "status": "sent",
+      "deliveryStatus": "delivered",
+      "mediaType": "image",
+      "mediaUrl": "/api/media/file/med_1792872055880_f3722c91c602?chatId=user_alice_user_bob",
+      "downloadUrl": "/api/media/file/med_1792872055880_f3722c91c602?chatId=user_alice_user_bob",
+      "storagePath": "chats/user_alice_user_bob/user_alice/1792872055880_sunset_beach.jpg",
+      "fileName": "sunset_beach.jpg",
+      "mimeType": "image/jpeg",
+      "fileSize": 22
+    },
+    {
+      "id": "msg_video_test_1",
+      "sender": "user_alice",
+      "senderName": "Alice",
+      "recipientId": "user_bob",
+      "chatId": "user_alice_user_bob",
+      "text": "Here is the demo video clip!",
+      "time": "12:31 PM",
+      "timestamp": 1792872056903,
+      "status": "sent",
+      "deliveryStatus": "delivered",
+      "mediaType": "video",
+      "mediaUrl": "/api/media/file/med_1792872055895_be2f7925f7f3?chatId=user_alice_user_bob",
+      "downloadUrl": "/api/media/file/med_1792872055895_be2f7925f7f3?chatId=user_alice_user_bob",
+      "storagePath": "chats/user_alice_user_bob/user_alice/1792872055895_demo_clip.mp4",
+      "fileName": "demo_clip.mp4",
+      "mimeType": "video/mp4",
+      "fileSize": 4120
+    }
+  ]
+}

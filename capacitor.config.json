@@ -1,0 +1,28 @@
+{
+  "appId": "com.flashtalk.messenger",
+  "appName": "FlashTalk",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true,
+    "backgroundColor": "#06090F"
+  },
+  "plugins": {
+    "Keyboard": {
+      "resize": "body",
+      "style": "DARK",
+      "resizeOnFullScreen": true
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#06090F",
+      "overlaysWebView": false
+    }
+  }
+}

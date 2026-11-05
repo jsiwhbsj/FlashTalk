@@ -1,0 +1,207 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 1: Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Hardened Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Entity Validation Helpers
+    function isValidUserPublicProfile(data) {
+      return data.keys().hasAll(['id', 'uid', 'name', 'username', 'avatar', 'online', 'lastSeenTime']) &&
+             data.keys().hasOnly(['id', 'uid', 'name', 'username', 'bio', 'avatar', 'online', 'lastSeenTime']) &&
+             data.id is string && data.id.size() >= 1 && data.id.size() <= 128 && data.id.matches('^[a-zA-Z0-9_\\-]+$') &&
+             data.id == request.auth.uid &&
+             data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 32 && data.uid.matches('^[0-9]+$') &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             data.username is string && data.username.size() >= 3 && data.username.size() <= 40 && data.username.matches('^[a-z0-9_]+$') &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() <= 300)) &&
+             data.avatar is string && data.avatar.size() >= 1 && data.avatar.size() <= 10 &&
+             data.online is bool &&
+             data.lastSeenTime is number;
+    }
+
+    function isValidUserPrivateInfo(data) {
+      return data.keys().hasAll(['ownerId', 'email']) &&
+             data.keys().hasOnly(['ownerId', 'email', 'recoveryAnswer', 'passcode']) &&
+             data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+             data.ownerId == request.auth.uid &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 160 &&
+             (!('recoveryAnswer' in data) || (data.recoveryAnswer is string && data.recoveryAnswer.size() <= 120)) &&
+             (!('passcode' in data) || (data.passcode is string && data.passcode.size() <= 10));
+    }
+
+    function isValidChatMessage(data) {
+      return data.keys().hasAll(['id', 'roomId', 'sender', 'senderName', 'text', 'timestamp', 'seen']) &&
+             data.keys().hasOnly([
+               'id',
+               'roomId',
+               'chatId',
+               'sender',
+               'senderId',
+               'senderName',
+               'recipientId',
+               'text',
+               'mediaType',
+               'mediaUrl',
+               'downloadUrl',
+               'storagePath',
+               'fileName',
+               'mimeType',
+               'fileSize',
+               'cipherText',
+               'e2eeFingerprint',
+               'deliveryStatus',
+               'timestamp',
+               'seen'
+             ]) &&
+             data.id is string && data.id.size() >= 1 && data.id.size() <= 128 &&
+             data.roomId is string && data.roomId.size() >= 1 && data.roomId.size() <= 128 &&
+             (!('chatId' in data) || (data.chatId is string && data.chatId.size() >= 1 && data.chatId.size() <= 128)) &&
+             data.sender is string && data.sender.size() >= 1 && data.sender.size() <= 128 &&
+             data.sender == request.auth.uid &&
+             (!('senderId' in data) || (data.senderId is string && data.senderId == request.auth.uid)) &&
+             data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 100 &&
+             (!('recipientId' in data) || (data.recipientId is string && data.recipientId.size() <= 128)) &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 5000 &&
+             (!('mediaType' in data) || (data.mediaType is string && data.mediaType.size() <= 32)) &&
+             (!('mediaUrl' in data) || (data.mediaUrl is string && data.mediaUrl.size() <= 2048)) &&
+             (!('downloadUrl' in data) || (data.downloadUrl is string && data.downloadUrl.size() <= 2048)) &&
+             (!('storagePath' in data) || (data.storagePath is string && data.storagePath.size() <= 512)) &&
+             (!('fileName' in data) || (data.fileName is string && data.fileName.size() <= 255)) &&
+             (!('mimeType' in data) || (data.mimeType is string && data.mimeType.size() <= 100)) &&
+             (!('fileSize' in data) || (data.fileSize is number && data.fileSize >= 0 && data.fileSize <= 52428800)) &&
+             (!('cipherText' in data) || (data.cipherText is string && data.cipherText.size() <= 8000)) &&
+             (!('e2eeFingerprint' in data) || (data.e2eeFingerprint is string && data.e2eeFingerprint.size() <= 64)) &&
+             (!('deliveryStatus' in data) || (data.deliveryStatus is string && data.deliveryStatus.size() <= 32)) &&
+             data.timestamp is number &&
+             data.seen is bool;
+    }
+
+    function isValidFriendRequest(data) {
+      return data.keys().hasAll(['fromUserId', 'fromName', 'toUserId', 'status', 'timestamp']) &&
+             data.keys().hasOnly(['fromUserId', 'fromName', 'toUserId', 'status', 'timestamp']) &&
+             data.fromUserId is string && data.fromUserId.size() >= 1 && data.fromUserId.size() <= 128 &&
+             data.fromName is string && data.fromName.size() >= 1 && data.fromName.size() <= 100 &&
+             data.toUserId is string && data.toUserId.size() >= 1 && data.toUserId.size() <= 128 &&
+             data.fromUserId != data.toUserId &&
+             data.status is string && (data.status == 'pending' || data.status == 'accepted' || data.status == 'declined') &&
+             data.timestamp is number;
+    }
+
+    function isValidAbuseReport(data) {
+      return data.keys().hasAll(['reporterId', 'targetId', 'reason', 'timestamp']) &&
+             data.keys().hasOnly(['reporterId', 'targetId', 'reason', 'details', 'timestamp']) &&
+             data.reporterId is string && data.reporterId.size() >= 1 && data.reporterId.size() <= 128 &&
+             data.reporterId == request.auth.uid &&
+             data.targetId is string && data.targetId.size() >= 1 && data.targetId.size() <= 128 &&
+             data.reason is string && data.reason.size() >= 1 && data.reason.size() <= 200 &&
+             (!('details' in data) || (data.details is string && data.details.size() <= 1000)) &&
+             data.timestamp is number;
+    }
+
+    // 1. Public User Profiles (/users/{userId})
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId);
+      allow list: if isSignedIn() && existing().online is bool;
+      allow create: if isVerifiedUser() && isValidId(userId) && isOwner(userId) && isValidUserPublicProfile(incoming());
+      allow update: if isVerifiedUser() && isValidId(userId) && isOwner(userId) && isValidUserPublicProfile(incoming()) &&
+                    incoming().id == existing().id &&
+                    incoming().uid == existing().uid &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'username', 'bio', 'avatar', 'online', 'lastSeenTime']);
+      allow delete: if isVerifiedUser() && isValidId(userId) && isOwner(userId);
+
+      // 2. Private User PII (/users/{userId}/private/{docId})
+      match /private/{docId} {
+        allow get: if isVerifiedUser() && isValidId(userId) && isValidId(docId) && isOwner(userId);
+        allow list: if false;
+        allow create: if isVerifiedUser() && isValidId(userId) && isValidId(docId) && isOwner(userId) && isValidUserPrivateInfo(incoming());
+        allow update: if isVerifiedUser() && isValidId(userId) && isValidId(docId) && isOwner(userId) && isValidUserPrivateInfo(incoming()) &&
+                      incoming().ownerId == existing().ownerId &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['email', 'recoveryAnswer', 'passcode']);
+        allow delete: if isVerifiedUser() && isValidId(userId) && isValidId(docId) && isOwner(userId);
+      }
+    }
+
+    // 3. Chat Messages (/chats/{roomId}/messages/{messageId})
+    match /chats/{roomId}/messages/{messageId} {
+      allow get: if isSignedIn() && isValidId(roomId) && isValidId(messageId) &&
+                 (existing().sender == request.auth.uid || existing().recipientId == request.auth.uid || existing().roomId == roomId);
+      allow list: if isSignedIn() &&
+                  (existing().sender == request.auth.uid || existing().recipientId == request.auth.uid || existing().roomId is string);
+      allow create: if isSignedIn() && isValidId(roomId) && isValidId(messageId) &&
+                    isValidChatMessage(incoming()) &&
+                    incoming().roomId == roomId;
+      allow update: if isSignedIn() && isValidId(roomId) && isValidId(messageId) &&
+                    isValidChatMessage(incoming()) &&
+                    incoming().id == existing().id &&
+                    incoming().roomId == existing().roomId &&
+                    incoming().sender == existing().sender &&
+                    incoming().timestamp == existing().timestamp &&
+                    (
+                      (existing().sender == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['text', 'seen', 'deliveryStatus']))
+                    );
+      allow delete: if isSignedIn() && isValidId(roomId) && isValidId(messageId) && existing().sender == request.auth.uid;
+    }
+
+    // 4. Friend Requests (/friendRequests/{requestId})
+    match /friendRequests/{requestId} {
+      allow get: if isSignedIn() && isValidId(requestId) &&
+                 (existing().fromUserId == request.auth.uid || existing().toUserId == request.auth.uid);
+      allow list: if isSignedIn() &&
+                  (existing().fromUserId == request.auth.uid || existing().toUserId == request.auth.uid);
+      allow create: if isVerifiedUser() && isValidId(requestId) &&
+                    isValidFriendRequest(incoming()) &&
+                    incoming().fromUserId == request.auth.uid &&
+                    incoming().status == 'pending' &&
+                    exists(/databases/$(database)/documents/users/$(incoming().toUserId));
+      allow update: if isVerifiedUser() && isValidId(requestId) &&
+                    isValidFriendRequest(incoming()) &&
+                    existing().status == 'pending' &&
+                    existing().toUserId == request.auth.uid &&
+                    incoming().fromUserId == existing().fromUserId &&
+                    incoming().toUserId == existing().toUserId &&
+                    incoming().timestamp == existing().timestamp &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['status']) &&
+                    (incoming().status == 'accepted' || incoming().status == 'declined');
+      allow delete: if isVerifiedUser() && isValidId(requestId) &&
+                    (existing().fromUserId == request.auth.uid || existing().toUserId == request.auth.uid);
+    }
+
+    // 5. Abuse Reports (/reports/{reportId})
+    match /reports/{reportId} {
+      allow get: if isVerifiedUser() && isValidId(reportId) && existing().reporterId == request.auth.uid;
+      allow list: if isVerifiedUser() && existing().reporterId == request.auth.uid;
+      allow create: if isVerifiedUser() && isValidId(reportId) &&
+                    isValidAbuseReport(incoming()) &&
+                    exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}

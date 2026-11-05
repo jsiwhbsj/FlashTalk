@@ -1,0 +1,233 @@
+{
+  "entities": {
+    "UserPublicProfile": {
+      "title": "UserPublicProfile",
+      "description": "Publicly searchable user profile metadata without sensitive PII.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "uid": {
+          "type": "string",
+          "maxLength": 32,
+          "pattern": "^[0-9]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "username": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 40,
+          "pattern": "^[a-z0-9_]+$"
+        },
+        "bio": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "avatar": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "online": {
+          "type": "boolean"
+        },
+        "lastSeenTime": {
+          "type": "number"
+        }
+      },
+      "required": ["id", "uid", "name", "username", "avatar", "online", "lastSeenTime"]
+    },
+    "UserPrivateInfo": {
+      "title": "UserPrivateInfo",
+      "description": "Strictly owner-isolated private user settings and PII.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "recoveryAnswer": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "passcode": {
+          "type": "string",
+          "maxLength": 10
+        }
+      },
+      "required": ["ownerId", "email"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Individual text or media message inside a chat room.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "roomId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "chatId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "sender": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "senderId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "senderName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "recipientId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "mediaType": {
+          "type": "string",
+          "enum": ["image", "video", "audio", "file", "call", "drive"]
+        },
+        "mediaUrl": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "downloadUrl": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "storagePath": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "fileName": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "mimeType": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "fileSize": {
+          "type": "number"
+        },
+        "cipherText": {
+          "type": "string",
+          "maxLength": 8000
+        },
+        "e2eeFingerprint": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "deliveryStatus": {
+          "type": "string",
+          "enum": ["sent", "delivered", "seen"]
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "seen": {
+          "type": "boolean"
+        }
+      },
+      "required": ["id", "roomId", "sender", "senderName", "text", "timestamp", "seen"]
+    },
+    "FriendRequest": {
+      "title": "FriendRequest",
+      "description": "Friend request between two users.",
+      "type": "object",
+      "properties": {
+        "fromUserId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "fromName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "toUserId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "accepted", "declined"]
+        },
+        "timestamp": {
+          "type": "number"
+        }
+      },
+      "required": ["fromUserId", "fromName", "toUserId", "status", "timestamp"]
+    },
+    "AbuseReport": {
+      "title": "AbuseReport",
+      "description": "User-submitted safety or abuse report.",
+      "type": "object",
+      "properties": {
+        "reporterId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "targetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "details": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "timestamp": {
+          "type": "number"
+        }
+      },
+      "required": ["reporterId", "targetId", "reason", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserPublicProfile" },
+      "description": "Public profile directory for user discovery and contact lookup."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/UserPrivateInfo" },
+      "description": "Isolated private PII and security settings for each user."
+    },
+    "/chats/{roomId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Real-time messages inside a direct or group chat room."
+    },
+    "/friendRequests/{requestId}": {
+      "schema": { "$ref": "#/entities/FriendRequest" },
+      "description": "Friend requests sent between users."
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/AbuseReport" },
+      "description": "Safety and abuse reports submitted by users."
+    }
+  }
+}

@@ -1,0 +1,49 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Default-deny all public or unauthenticated access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Check if the authenticated user is a participant in a 1:1 chatId (uidA_uidB) or group chat (g_*)
+    function isAuthorizedChatParticipant(chatId, senderId) {
+      return isSignedIn() && (
+        request.auth.uid == senderId ||
+        chatId.matches('^' + request.auth.uid + '_.*$') ||
+        chatId.matches('^.*_' + request.auth.uid + '$') ||
+        chatId.matches('^g_.*$') ||
+        (resource != null && resource.metadata != null && resource.metadata.recipientId == request.auth.uid)
+      );
+    }
+
+    function isValidMediaContentType() {
+      return request.resource.contentType.matches('image/(jpeg|jpg|png|webp|gif)') ||
+             request.resource.contentType.matches('video/(mp4|webm|quicktime|ogg)') ||
+             request.resource.contentType.matches('audio/.*') ||
+             request.resource.contentType == 'application/pdf';
+    }
+
+    function isWithinSizeLimit() {
+      return (request.resource.contentType.matches('video/.*') && request.resource.size <= 50 * 1024 * 1024) ||
+             (request.resource.contentType.matches('image/.*') && request.resource.size <= 20 * 1024 * 1024) ||
+             request.resource.size <= 25 * 1024 * 1024;
+    }
+
+    // Conversation-isolated media attachments: /chats/{chatId}/{senderId}/{fileName}
+    match /chats/{chatId}/{senderId}/{fileName} {
+      allow get: if isAuthorizedChatParticipant(chatId, senderId);
+      allow list: if false;
+      allow create, update: if isSignedIn() &&
+                            request.auth.uid == senderId &&
+                            isAuthorizedChatParticipant(chatId, senderId) &&
+                            isValidMediaContentType() &&
+                            isWithinSizeLimit();
+      allow delete: if isSignedIn() && request.auth.uid == senderId;
+    }
+  }
+}

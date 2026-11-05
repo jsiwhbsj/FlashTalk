@@ -1,0 +1,6 @@
+{
+  "name": "FlashTalk — Secure AI Messenger",
+  "description": "A secure real-time messenger with P2P calling, stories, multi-account management, Google Drive integration, and Gemini AI capabilities.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
